@@ -2,8 +2,12 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ["www.thesportsdb.com"],
+    domains: [
+      "www.thesportsdb.com",
+      "hebbkx1anhila5yf.public.blob.vercel-storage.com",
+      "r2.thesportsdb.com",
+    ],
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

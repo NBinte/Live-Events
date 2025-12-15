@@ -92,10 +92,10 @@ export function PopularCompetitions() {
                     width={40}
                     height={40}
                     className="object-contain"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).src =
-                        `/placeholder.svg?height=40&width=40&query=${encodeURIComponent(competition.name)}`
-                    }}
+                    // onError={(e) => {
+                    //   ;(e.target as HTMLImageElement).src =
+                    //     `/placeholder.svg?height=40&width=40&query=${encodeURIComponent(competition.name)}`
+                    // }}
                   />
                 </div>
                 <h3 className={`font-medium ${competition.textColor}`}>{competition.name}</h3>
