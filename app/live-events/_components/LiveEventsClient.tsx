@@ -11,7 +11,7 @@ import { RefreshCw, Search } from "lucide-react";
 
 type Props = {
   initialEvents: LiveEvent[];
-  tvChannels: TvChannel[];
+  tvChannels: TvChannel[] | unknown; // <- tolerate bad input
 };
 
 const STATUS_OPTIONS: Array<{ label: string; value: "all" | LiveStatus }> = [
@@ -25,16 +25,18 @@ type QuickAction = "tickets" | "watch" | "share" | "favourite";
 
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debounced, setDebounced] = React.useState(value);
-
   React.useEffect(() => {
     const t = window.setTimeout(() => setDebounced(value), delayMs);
     return () => window.clearTimeout(t);
   }, [value, delayMs]);
-
   return debounced;
 }
 
 export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
+  const safeTvChannels = React.useMemo<TvChannel[]>(() => {
+    return Array.isArray(tvChannels) ? (tvChannels as TvChannel[]) : [];
+  }, [tvChannels]);
+
   const [lastUpdated, setLastUpdated] = React.useState<Date>(() => new Date());
   const [query, setQuery] = React.useState("");
   const debouncedQuery = useDebouncedValue(query, 180);
@@ -45,13 +47,12 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
 
   const channelsById = React.useMemo(() => {
     const map: Record<string, TvChannel> = {};
-    for (const ch of tvChannels) map[ch.id] = ch;
+    for (const ch of safeTvChannels) map[ch.id] = ch;
     return map;
-  }, [tvChannels]);
+  }, [safeTvChannels]);
 
   const filtered = React.useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
-
     return initialEvents.filter((e) => {
       if (status !== "all" && e.status !== status) return false;
       if (!q) return true;
@@ -74,11 +75,9 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
   }, [initialEvents, debouncedQuery, status]);
 
   const onRefresh = React.useCallback(() => setLastUpdated(new Date()), []);
-
   const onToggleTiles = React.useCallback((eventId: string) => {
     setTilesEnabledByEventId((prev) => ({ ...prev, [eventId]: !(prev[eventId] ?? true) }));
   }, []);
-
   const onClearEventUi = React.useCallback((eventId: string) => {
     setTilesEnabledByEventId((prev) => {
       const copy = { ...prev };
@@ -91,34 +90,29 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
       return copy;
     });
   }, []);
-
   const onQuickAction = React.useCallback(async (eventId: string, action: QuickAction) => {
     if (action === "favourite") {
       setIsFavouritedByEventId((prev) => ({ ...prev, [eventId]: !(prev[eventId] ?? false) }));
       return;
     }
-
     if (action === "share") {
       const url = `${window.location.origin}/live-events#${eventId}`;
       try {
-        if (navigator.share) {
-          await navigator.share({ title: "Live Event", url });
-        } else {
+        if (navigator.share) await navigator.share({ title: "Live Event", url });
+        else {
           await navigator.clipboard.writeText(url);
           setLastUpdated(new Date());
         }
-      } catch {
-        // ignore
-      }
+      } catch {}
       return;
     }
-
     setLastUpdated(new Date());
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-      <header className="mb-7 flex flex-col gap-4">
+    <div className="mx-auto max-w-7xl text-[15px] leading-relaxed">
+      {/* header */}
+      <header className="mb-6 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-3">
@@ -128,16 +122,16 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Fast, grouped, responsive — with per-event match center + TV channels.
+              FixtureCalendar-style list + per-event match center + right-rail TV channels.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onRefresh} className="gap-2">
+            <Button variant="outline" onClick={onRefresh} className="h-10 gap-2 rounded-xl">
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
-            <MobileTvSheet tvChannels={tvChannels} />
+            <MobileTvSheet tvChannels={safeTvChannels} />
           </div>
         </div>
 
@@ -148,7 +142,7 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search team, league, venue…"
-              className="h-11 pl-10 text-base"
+              className="h-11 rounded-xl pl-10 text-[15px]"
               aria-label="Search live events"
             />
           </div>
@@ -173,6 +167,7 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
         </div>
       </header>
 
+      {/* layout */}
       <main className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
         <section aria-label="Live events list">
           <EventsList
@@ -187,8 +182,8 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
         </section>
 
         <aside className="hidden lg:block" aria-label="TV channels">
-          <div className="sticky top-6 overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="border-b p-5">
+          <div className="sticky top-6 overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur">
+            <div className="border-b bg-muted/20 p-5">
               <h2 className="text-base font-semibold">TV Channels</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Desktop right rail. Mobile uses the TV Channels drawer.
@@ -196,8 +191,8 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
             </div>
 
             <ul className="max-h-[70vh] overflow-auto p-2">
-              {tvChannels.map((ch) => (
-                <li key={ch.id} className="rounded-xl p-3 hover:bg-muted/50">
+              {safeTvChannels.map((ch) => (
+                <li key={ch.id} className="rounded-xl p-3 hover:bg-muted/40">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold">{ch.name}</div>
@@ -211,6 +206,12 @@ export function LiveEventsClient({ initialEvents, tvChannels }: Props) {
                   </div>
                 </li>
               ))}
+
+              {!safeTvChannels.length ? (
+                <li className="p-4 text-sm text-muted-foreground">
+                  No TV channels loaded (check mock export/import).
+                </li>
+              ) : null}
             </ul>
           </div>
         </aside>

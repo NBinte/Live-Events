@@ -1,35 +1,32 @@
 // app/live-events/_components/EventsList.tsx
 import * as React from "react";
 import type { LiveEvent, TvChannel } from "../_data/mockLiveEvents";
-import { CompetitionSection } from "./CompetitionSection";
+import { Card } from "@/components/ui/card";
+import { EventRow } from "./EventRow";
 
 type Props = {
   events: LiveEvent[];
   channelsById: Record<string, TvChannel>;
-
   tilesEnabledByEventId: Record<string, boolean>;
   isFavouritedByEventId: Record<string, boolean>;
-
   onToggleTiles: (eventId: string) => void;
   onClearEventUi: (eventId: string) => void;
   onQuickAction: (eventId: string, action: "tickets" | "watch" | "share" | "favourite") => void;
 };
 
-function formatDayHeading(d: Date) {
-  return d.toLocaleDateString(undefined, {
-    weekday: "long",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function dayKey(iso: string) {
   const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function formatDay(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 }
 
 export function EventsList({
@@ -42,68 +39,63 @@ export function EventsList({
   onQuickAction,
 }: Props) {
   const grouped = React.useMemo(() => {
-    const byDay = new Map<string, LiveEvent[]>();
-
+    const map = new Map<number, LiveEvent[]>();
     for (const e of events) {
-      const key = dayKey(e.startTimeISO);
-      const arr = byDay.get(key) ?? [];
+      const k = dayKey(e.startTimeISO);
+      const arr = map.get(k) ?? [];
       arr.push(e);
-      byDay.set(key, arr);
+      map.set(k, arr);
     }
-
-    const statusRank: Record<string, number> = { live: 0, upcoming: 1, finished: 2 };
-
-    const days = Array.from(byDay.entries()).sort(([a], [b]) => (a < b ? -1 : 1));
-
-    return days.map(([day, items]) => {
-      const sorted = [...items].sort((x, y) => {
-        const sr = statusRank[x.status] - statusRank[y.status];
-        if (sr !== 0) return sr;
-        return new Date(x.startTimeISO).getTime() - new Date(y.startTimeISO).getTime();
-      });
-
-      const byComp = new Map<string, LiveEvent[]>();
-      for (const e of sorted) {
-        const k = e.competition;
-        const arr = byComp.get(k) ?? [];
-        arr.push(e);
-        byComp.set(k, arr);
-      }
-
-      const comps = Array.from(byComp.entries()).sort(([a], [b]) => a.localeCompare(b));
-      return { day, comps };
-    });
+    const ordered = Array.from(map.entries()).sort((a, b) => a[0] - b[0]);
+    for (const [, arr] of ordered) {
+      arr.sort((a, b) => new Date(a.startTimeISO).getTime() - new Date(b.startTimeISO).getTime());
+    }
+    return ordered;
   }, [events]);
 
-  return (
-    <div className="rounded-xl border bg-card">
-      {grouped.map((g, idx) => {
-        const dayDate = new Date(`${g.day}T00:00:00`);
-        const count = g.comps.reduce((sum, [, arr]) => sum + arr.length, 0);
+  if (!events.length) {
+    return (
+      <Card className="rounded-2xl border bg-white/70 p-8 text-center shadow-sm backdrop-blur">
+        <div className="text-lg font-semibold">No events found</div>
+        <div className="mt-1 text-sm text-muted-foreground">Try adjusting filters or search terms.</div>
+      </Card>
+    );
+  }
 
+  return (
+    <div className="space-y-5">
+      {grouped.map(([k, dayEvents]) => {
+        const label = formatDay(new Date(k).toISOString());
         return (
-          <section key={g.day} className={idx === 0 ? "" : "border-t"}>
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <h2 className="text-sm font-semibold">{formatDayHeading(dayDate)}</h2>
-              <span className="text-xs text-muted-foreground">{count} events</span>
+          <div key={k} className="overflow-hidden rounded-2xl border bg-white/70 shadow-sm backdrop-blur">
+            <div className="flex items-end justify-between gap-3 border-b bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div>
+                <div className="text-lg font-semibold tracking-tight">{label}</div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  {dayEvents.length} event{dayEvents.length === 1 ? "" : "s"}
+                </div>
+              </div>
+
+              <div className="hidden sm:block text-sm text-muted-foreground">
+                Sorted by kickoff time
+              </div>
             </div>
 
-            <div className="pb-2">
-              {g.comps.map(([title, items]) => (
-                <CompetitionSection
-                  key={`${g.day}:${title}`}
-                  title={title}
-                  items={items}
+            <div className="divide-y">
+              {dayEvents.map((evt) => (
+                <EventRow
+                  key={evt.id}
+                  evt={evt}
                   channelsById={channelsById}
-                  tilesEnabledByEventId={tilesEnabledByEventId}
-                  isFavouritedByEventId={isFavouritedByEventId}
+                  tilesEnabled={tilesEnabledByEventId[evt.id] ?? true}
+                  isFavourited={isFavouritedByEventId[evt.id] ?? false}
                   onToggleTiles={onToggleTiles}
                   onClearEventUi={onClearEventUi}
                   onQuickAction={onQuickAction}
                 />
               ))}
             </div>
-          </section>
+          </div>
         );
       })}
     </div>

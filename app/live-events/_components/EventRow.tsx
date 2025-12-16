@@ -3,58 +3,51 @@ import * as React from "react";
 import type { LiveEvent, TvChannel } from "../_data/mockLiveEvents";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   CalendarDays,
-  MapPin,
+  Settings,
+  Trash2,
+  Zap,
   Ticket,
-  Plane,
-  ShoppingBag,
-  MessageCircle,
-  Globe,
-  BookOpen,
-  Tv,
+  Tv2,
+  Share2,
+  Star,
 } from "lucide-react";
-import { EventTopBar } from "./EventTopBar";
-import { QuickTiles } from "./QuickTiles";
+import { MatchCenterPanels } from "./MatchCenterPanels";
+import { EventActionBar } from "./EventActionBar";
 
 type Props = {
   evt: LiveEvent;
   channelsById: Record<string, TvChannel>;
-
   tilesEnabled: boolean;
   isFavourited: boolean;
-
   onToggleTiles: (eventId: string) => void;
   onClearEventUi: (eventId: string) => void;
   onQuickAction: (eventId: string, action: "tickets" | "watch" | "share" | "favourite") => void;
 };
 
-function statusPill(status: LiveEvent["status"]) {
-  if (status === "live") return "bg-emerald-500/15 text-emerald-700 border-emerald-200";
-  if (status === "upcoming") return "bg-sky-500/15 text-sky-700 border-sky-200";
-  return "bg-slate-500/10 text-slate-700 border-slate-200";
+function statusChip(status: LiveEvent["status"]) {
+  if (status === "live") return { label: "LIVE", className: "bg-emerald-600 text-white" };
+  if (status === "upcoming") return { label: "UPCOMING", className: "bg-sky-600 text-white" };
+  return { label: "FINISHED", className: "bg-slate-700 text-white" };
 }
 
-function leftTint(status: LiveEvent["status"]) {
-  if (status === "live") return "bg-emerald-500/10";
-  if (status === "upcoming") return "bg-sky-500/10";
-  return "bg-slate-500/10";
+function fmtDateTime(iso: string) {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
+  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return `${date} • ${time}`;
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+function initials(name: string) {
+  const parts = name.split(" ").filter(Boolean);
+  const a = parts[0]?.[0] ?? "";
+  const b = parts[1]?.[0] ?? parts[0]?.[1] ?? "";
+  return (a + b).toUpperCase();
 }
 
-function formatDateShort(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
-}
-
-function scorePill(score: number | null | undefined) {
-  if (score === null || score === undefined) return null;
-  return <span className="rounded-lg border bg-background px-2.5 py-1 text-sm font-semibold">{score}</span>;
-}
-
-function EventRowInner({
+export function EventRow({
   evt,
   channelsById,
   tilesEnabled,
@@ -63,209 +56,192 @@ function EventRowInner({
   onClearEventUi,
   onQuickAction,
 }: Props) {
-  const channelNames = React.useMemo(
-    () => evt.tvChannelIds.map((id) => channelsById[id]?.name).filter(Boolean) as string[],
-    [evt.tvChannelIds, channelsById]
-  );
-
-  const shown = channelNames.slice(0, 3);
-  const moreCount = Math.max(0, channelNames.length - shown.length);
+  const chip = statusChip(evt.status);
+  const tv = evt.tvChannelIds.map((id) => channelsById[id]).filter(Boolean);
 
   return (
-    <article id={evt.id} className="px-4 py-4">
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        {/* Header strip */}
-        <div className="flex flex-col gap-2 border-b bg-muted/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="rounded-full text-sm">
-              {evt.sport}
-            </Badge>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold">{evt.competition}</span>
-              {evt.stage ? <span className="text-sm text-muted-foreground">• {evt.stage}</span> : null}
-            </div>
-
-            <span className={`rounded-full border px-3 py-1 text-sm font-semibold ${statusPill(evt.status)}`}>
-              {evt.status.toUpperCase()}
-            </span>
-
-            {isFavourited ? (
-              <Badge className="rounded-full text-sm">Favourite</Badge>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CalendarDays className="h-5 w-5" />
-              <span>
-                {formatDateShort(evt.startTimeISO)} • {formatTime(evt.startTimeISO)}
-              </span>
-            </div>
-
-            <EventTopBar
-              eventId={evt.id}
-              tilesEnabled={tilesEnabled}
-              onToggleTiles={() => onToggleTiles(evt.id)}
-              onClear={() => onClearEventUi(evt.id)}
-              compact
-            />
-          </div>
+    <div id={evt.id} className="p-5">
+      {/* top meta row */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="rounded-full">{evt.sport}</Badge>
+          <div className="text-sm font-semibold">{evt.competition}</div>
+          {evt.stage ? <div className="text-sm text-muted-foreground">• {evt.stage}</div> : null}
+          <Badge className={`rounded-full ${chip.className}`}>{chip.label}</Badge>
         </div>
 
-        {/* Body */}
-        <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_300px]">
-          {/* Left panel (now light + readable) */}
-          <div className={`border-b p-5 lg:border-b-0 lg:border-r ${leftTint(evt.status)}`}>
-            <div className="rounded-2xl border bg-background/70 p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-muted-foreground">
-                  {evt.status === "live" ? "Live" : evt.status === "upcoming" ? "Upcoming" : "Finished"}
-                </div>
-                <Badge variant="outline" className="rounded-full text-xs">
-                  {evt.sport}
-                </Badge>
-              </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="rounded-full">
+            ID: {evt.id}
+          </Badge>
+          <Button variant="outline" size="sm" className="rounded-full gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full gap-2"
+            onClick={() => onClearEventUi(evt.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+            Clear
+          </Button>
+          <Button
+            variant={tilesEnabled ? "default" : "outline"}
+            size="sm"
+            className="rounded-full gap-2"
+            onClick={() => onToggleTiles(evt.id)}
+          >
+            <Zap className="h-4 w-4" />
+            Tiles: {tilesEnabled ? "On" : "Off"}
+          </Button>
+        </div>
+      </div>
 
-              <div className="mt-4 space-y-3">
-                <div className="rounded-xl bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">Home</div>
-                  <div className="mt-1 text-base font-semibold">{evt.home.name}</div>
-                  <div className="mt-2">{scorePill(evt.home.score) ?? <span className="text-sm text-muted-foreground">—</span>}</div>
-                </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarDays className="h-4 w-4" />
+          <span>{fmtDateTime(evt.startTimeISO)}</span>
+          <span className="text-muted-foreground">•</span>
+          <span className="truncate">{evt.venue.name}</span>
+        </div>
 
-                <div className="text-center text-xs font-semibold text-muted-foreground">VS</div>
+        {/* quick icons row (keep your feature) */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            onClick={() => onQuickAction(evt.id, "tickets")}
+            aria-label="Tickets"
+          >
+            <Ticket className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            onClick={() => onQuickAction(evt.id, "watch")}
+            aria-label="Watch"
+          >
+            <Tv2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            onClick={() => onQuickAction(evt.id, "share")}
+            aria-label="Share"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={isFavourited ? "default" : "outline"}
+            size="icon"
+            className="rounded-xl"
+            onClick={() => onQuickAction(evt.id, "favourite")}
+            aria-label="Favourite"
+          >
+            <Star className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-                <div className="rounded-xl bg-muted/30 p-3">
-                  <div className="text-xs text-muted-foreground">Away</div>
-                  <div className="mt-1 text-base font-semibold">{evt.away.name}</div>
-                  <div className="mt-2">{scorePill(evt.away.score) ?? <span className="text-sm text-muted-foreground">—</span>}</div>
-                </div>
-              </div>
-            </div>
+      <Separator className="my-4" />
+
+      {/* main event grid (best-of-breed merge) */}
+      <div className="grid gap-4 lg:grid-cols-[260px_1fr_280px]">
+        {/* Left: team slab (Layout 1/2 “visual”) */}
+        <div className="rounded-2xl border bg-gradient-to-b from-slate-50 to-white p-4">
+          <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="rounded-full capitalize">{evt.status}</Badge>
+            <Badge variant="outline" className="rounded-full">{evt.sport}</Badge>
           </div>
 
-          {/* Center */}
-          <div className="p-5">
-            <div className="rounded-2xl border bg-background p-5">
-              <div className="text-center">
-                <div className="text-sm font-semibold text-muted-foreground">Live Match Center</div>
-
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
-                  <span className="text-lg font-semibold">{evt.home.name}</span>
-                  {evt.home.score !== null && evt.home.score !== undefined ? scorePill(evt.home.score) : null}
-                  <span className="text-sm text-muted-foreground">vs</span>
-                  {evt.away.score !== null && evt.away.score !== undefined ? scorePill(evt.away.score) : null}
-                  <span className="text-lg font-semibold">{evt.away.name}</span>
-                </div>
+          <div className="mt-4 rounded-2xl bg-white/70 p-4 shadow-sm">
+            <div className="text-xs text-muted-foreground">Home</div>
+            <div className="mt-2 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border bg-white font-semibold">
+                {initials(evt.home.name)}
               </div>
-
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border bg-muted/10 p-4">
-                  <div className="text-sm font-semibold text-muted-foreground">Match time</div>
-                  <div className="mt-1 text-lg font-semibold">{formatTime(evt.startTimeISO)}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{formatDateShort(evt.startTimeISO)}</div>
-                </div>
-
-                <div className="rounded-xl border bg-muted/10 p-4">
-                  <div className="text-sm font-semibold text-muted-foreground">Venue</div>
-                  <div className="mt-1 flex items-start gap-2 text-base">
-                    <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
-                    <span className="min-w-0 truncate font-semibold">
-                      {evt.venue.name}
-                      {evt.venue.city ? `, ${evt.venue.city}` : ""}
-                      {evt.venue.country ? `, ${evt.venue.country}` : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <QuickTiles
-                disabled={!tilesEnabled}
-                isFavourited={isFavourited}
-                onAction={(k) => onQuickAction(evt.id, k)}
-              />
-
-              {/* Actions */}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {evt.actions.buyTickets ? (
-                  <Button variant="default" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <Ticket className="h-5 w-5" />
-                    Buy tickets
-                  </Button>
-                ) : null}
-
-                {evt.actions.planTrip ? (
-                  <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <Plane className="h-5 w-5" />
-                    Plan a trip
-                  </Button>
-                ) : null}
-
-                {evt.actions.shop ? (
-                  <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <ShoppingBag className="h-5 w-5" />
-                    Shop
-                  </Button>
-                ) : null}
-
-                {evt.actions.engage ? (
-                  <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <MessageCircle className="h-5 w-5" />
-                    Engage
-                  </Button>
-                ) : null}
-
-                {evt.actions.watchOnline ? (
-                  <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <Globe className="h-5 w-5" />
-                    Watch online / TV
-                  </Button>
-                ) : null}
-
-                {evt.actions.readMore ? (
-                  <Button variant="outline" size="sm" className="h-10 gap-2 rounded-xl px-4 text-sm">
-                    <BookOpen className="h-5 w-5" />
-                    Read & listen more
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          </div>
-
-          {/* Right: per-event TV block */}
-          <div className="border-t p-5 lg:border-l lg:border-t-0">
-            <div className="rounded-2xl border bg-muted/10 p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-base font-semibold">
-                  <Tv className="h-5 w-5" />
-                  TV Channels
-                </div>
-                <Badge variant="outline" className="rounded-full text-sm">
-                  {evt.tvChannelIds.length}
-                </Badge>
-              </div>
-
-              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                {shown.length ? (
-                  <>
-                    {shown.map((n) => (
-                      <div key={n} className="truncate">
-                        {n}
-                      </div>
-                    ))}
-                    {moreCount ? <div>+ {moreCount} more</div> : null}
-                  </>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{evt.home.name}</div>
+                {typeof evt.home.score === "number" ? (
+                  <div className="text-sm text-muted-foreground">Score: {evt.home.score}</div>
                 ) : (
-                  <div>No broadcaster listed</div>
+                  <div className="text-sm text-muted-foreground">—</div>
+                )}
+              </div>
+            </div>
+
+            <div className="my-3 text-center text-xs text-muted-foreground">VS</div>
+
+            <div className="text-xs text-muted-foreground">Away</div>
+            <div className="mt-2 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border bg-white font-semibold">
+                {initials(evt.away.name)}
+              </div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{evt.away.name}</div>
+                {typeof evt.away.score === "number" ? (
+                  <div className="text-sm text-muted-foreground">Score: {evt.away.score}</div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">—</div>
                 )}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Center: Match Center panels (Layout 2 missing blocks) + bottom action bar */}
+        <div>
+          <MatchCenterPanels evt={evt} />
+          <EventActionBar evt={evt} onQuickAction={onQuickAction} />
+        </div>
+
+        {/* Right: TV channels mini-card per event (keeps your feature; matches Layout 2 “TV inside row”) */}
+        <div className="rounded-2xl border bg-white/70 p-4 shadow-sm backdrop-blur">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-semibold">TV Channels</div>
+            <Badge variant="secondary" className="rounded-full">{tv.length}</Badge>
+          </div>
+
+          <div className="grid gap-2">
+            {tv.length ? (
+              tv.map((c) => (
+                <div key={c.id} className="flex items-center justify-between rounded-xl border bg-white/60 p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{c.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {c.region ?? "Global"} • {c.isFree ? "Free" : "Subscription"}
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="rounded-full text-xs">
+                    {c.id.toUpperCase()}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+                TV info not available.
+              </div>
+            )}
+          </div>
+
+          {/* Optional promos (Layout 1/2 tiles) */}
+          {tilesEnabled && evt.promos?.length ? (
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {evt.promos.slice(0, 3).map((p) => (
+                <div key={p.id} className="rounded-xl border bg-gradient-to-b from-slate-50 to-white p-3 text-center">
+                  <div className="text-xs font-semibold">{p.label}</div>
+                  {p.sublabel ? <div className="mt-1 text-xs text-muted-foreground">{p.sublabel}</div> : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
-    </article>
+    </div>
   );
 }
-
-export const EventRow = React.memo(EventRowInner);
