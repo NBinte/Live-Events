@@ -1,11 +1,11 @@
-//nuzhatbintei@gmail.com
-
-import { LiveEvents } from "@/components/new-live-events";
+// app/live-events/page.tsx
+import { LiveEventsClient } from "./_components/LiveEventsClient";
+import { liveEvents, tvChannels } from "./_data/mockLiveEvents";
 
 export default function LiveEventsPage() {
   return (
-    <main>
-      <LiveEvents layout="single" title="Live Events" />
-    </main>
+    <div className="min-h-screen bg-background">
+      <LiveEventsClient initialEvents={liveEvents} tvChannels={tvChannels} />
+    </div>
   );
 }
