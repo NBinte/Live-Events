@@ -6,7 +6,7 @@ import { FixtureList } from "@/components/fixture-list"
 import { FixtureDetailModal } from "@/components/fixture-detail-modal"
 import { DateNavigation } from "@/components/date-navigation"
 import { fetchFixtures } from "@/lib/api"
-import type { Fixture, FilterState, TimePreference } from "@/lib/types"
+import type { Fixture, FilterState, TimePreference } from "@/lib/types/types"
 import { debounce } from "@/lib/utils"
 
 export default function AllFixturesPage() {
