@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { MatchCenterPanels } from "./MatchCenterPanels";
 import { EventActionBar } from "./EventActionBar";
+import { QuickTiles } from "./QuickTiles";
 
 type Props = {
   evt: LiveEvent;
@@ -24,19 +25,31 @@ type Props = {
   isFavourited: boolean;
   onToggleTiles: (eventId: string) => void;
   onClearEventUi: (eventId: string) => void;
-  onQuickAction: (eventId: string, action: "tickets" | "watch" | "share" | "favourite") => void;
+  onQuickAction: (
+    eventId: string,
+    action: "tickets" | "watch" | "share" | "favourite"
+  ) => void;
 };
 
 function statusChip(status: LiveEvent["status"]) {
-  if (status === "live") return { label: "LIVE", className: "bg-emerald-600 text-white" };
-  if (status === "upcoming") return { label: "UPCOMING", className: "bg-sky-600 text-white" };
+  if (status === "live")
+    return { label: "LIVE", className: "bg-emerald-600 text-white" };
+  if (status === "upcoming")
+    return { label: "UPCOMING", className: "bg-sky-600 text-white" };
   return { label: "FINISHED", className: "bg-slate-700 text-white" };
 }
 
 function fmtDateTime(iso: string) {
   const d = new Date(iso);
-  const date = d.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
-  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const date = d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+  const time = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return `${date} • ${time}`;
 }
 
@@ -64,9 +77,13 @@ export function EventRow({
       {/* top meta row */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="rounded-full">{evt.sport}</Badge>
+          <Badge variant="outline" className="rounded-full">
+            {evt.sport}
+          </Badge>
           <div className="text-sm font-semibold">{evt.competition}</div>
-          {evt.stage ? <div className="text-sm text-muted-foreground">• {evt.stage}</div> : null}
+          {evt.stage ? (
+            <div className="text-sm text-muted-foreground">• {evt.stage}</div>
+          ) : null}
           <Badge className={`rounded-full ${chip.className}`}>{chip.label}</Badge>
         </div>
 
@@ -107,7 +124,7 @@ export function EventRow({
           <span className="truncate">{evt.venue.name}</span>
         </div>
 
-        {/* quick icons row (keep your feature) */}
+        {/* quick icons row */}
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -150,13 +167,17 @@ export function EventRow({
 
       <Separator className="my-4" />
 
-      {/* main event grid (best-of-breed merge) */}
+      {/* main event grid */}
       <div className="grid gap-4 lg:grid-cols-[260px_1fr_280px]">
-        {/* Left: team slab (Layout 1/2 “visual”) */}
+        {/* Left: team slab */}
         <div className="rounded-2xl border bg-gradient-to-b from-slate-50 to-white p-4">
           <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="rounded-full capitalize">{evt.status}</Badge>
-            <Badge variant="outline" className="rounded-full">{evt.sport}</Badge>
+            <Badge variant="secondary" className="rounded-full capitalize">
+              {evt.status}
+            </Badge>
+            <Badge variant="outline" className="rounded-full">
+              {evt.sport}
+            </Badge>
           </div>
 
           <div className="mt-4 rounded-2xl bg-white/70 p-4 shadow-sm">
@@ -168,7 +189,9 @@ export function EventRow({
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{evt.home.name}</div>
                 {typeof evt.home.score === "number" ? (
-                  <div className="text-sm text-muted-foreground">Score: {evt.home.score}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Score: {evt.home.score}
+                  </div>
                 ) : (
                   <div className="text-sm text-muted-foreground">—</div>
                 )}
@@ -185,7 +208,9 @@ export function EventRow({
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold">{evt.away.name}</div>
                 {typeof evt.away.score === "number" ? (
-                  <div className="text-sm text-muted-foreground">Score: {evt.away.score}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Score: {evt.away.score}
+                  </div>
                 ) : (
                   <div className="text-sm text-muted-foreground">—</div>
                 )}
@@ -194,23 +219,39 @@ export function EventRow({
           </div>
         </div>
 
-        {/* Center: Match Center panels (Layout 2 missing blocks) + bottom action bar */}
+        {/* Center: Match Center + actions + QuickTiles */}
         <div>
           <MatchCenterPanels evt={evt} />
-          <EventActionBar evt={evt} onQuickAction={onQuickAction} />
+
+          <div className="mt-4">
+            <EventActionBar evt={evt} onQuickAction={onQuickAction} />
+          </div>
+
+          {/* ✅ Layout-1 style action tiles: now actually mounted */}
+          {tilesEnabled ? (
+            <QuickTiles
+              isFavourited={isFavourited}
+              onAction={(key) => onQuickAction(evt.id, key)}
+            />
+          ) : null}
         </div>
 
-        {/* Right: TV channels mini-card per event (keeps your feature; matches Layout 2 “TV inside row”) */}
+        {/* Right: TV + promos */}
         <div className="rounded-2xl border bg-white/70 p-4 shadow-sm backdrop-blur">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold">TV Channels</div>
-            <Badge variant="secondary" className="rounded-full">{tv.length}</Badge>
+            <Badge variant="secondary" className="rounded-full">
+              {tv.length}
+            </Badge>
           </div>
 
           <div className="grid gap-2">
             {tv.length ? (
               tv.map((c) => (
-                <div key={c.id} className="flex items-center justify-between rounded-xl border bg-white/60 p-3">
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between rounded-xl border bg-white/60 p-3"
+                >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{c.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -229,15 +270,45 @@ export function EventRow({
             )}
           </div>
 
-          {/* Optional promos (Layout 1/2 tiles) */}
-          {tilesEnabled && evt.promos?.length ? (
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {evt.promos.slice(0, 3).map((p) => (
-                <div key={p.id} className="rounded-xl border bg-gradient-to-b from-slate-50 to-white p-3 text-center">
-                  <div className="text-xs font-semibold">{p.label}</div>
-                  {p.sublabel ? <div className="mt-1 text-xs text-muted-foreground">{p.sublabel}</div> : null}
-                </div>
-              ))}
+          {/* ✅ Promos: always render the promos section when tilesEnabled */}
+          {tilesEnabled ? (
+            <div className="mt-4">
+              <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                Promotions
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {evt.promos?.length ? (
+                  evt.promos.slice(0, 3).map((p) => (
+                    <div
+                      key={p.id}
+                      className="rounded-xl border bg-gradient-to-b from-slate-50 to-white p-3 text-center"
+                    >
+                      <div className="text-xs font-semibold">{p.label}</div>
+                      {p.sublabel ? (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {p.sublabel}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="rounded-xl border bg-muted/20 p-3 text-center">
+                      <div className="text-xs font-semibold">No promos</div>
+                      <div className="mt-1 text-xs text-muted-foreground">—</div>
+                    </div>
+                    <div className="rounded-xl border bg-muted/20 p-3 text-center">
+                      <div className="text-xs font-semibold">No promos</div>
+                      <div className="mt-1 text-xs text-muted-foreground">—</div>
+                    </div>
+                    <div className="rounded-xl border bg-muted/20 p-3 text-center">
+                      <div className="text-xs font-semibold">No promos</div>
+                      <div className="mt-1 text-xs text-muted-foreground">—</div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           ) : null}
         </div>
