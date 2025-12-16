@@ -60,20 +60,19 @@ All required elements from both layouts are included, even if visually reorganiz
 ## Project Structure
 
 app/
-└── live-events/
-├── page.tsx
-├── _data/
-│ └── mockLiveEvents.ts
-└── _components/
-├── LiveEventsClient.tsx
-├── EventsList.tsx
-├── EventRow.tsx
-├── MatchCenterPanels.tsx
-├── EventActionBar.tsx
-├── EventTopBar.tsx
-├── MobileTvSheet.tsx
-└── QuickTiles.tsx
-
+  live-events/
+  page.tsx
+  _data/
+    mockLiveEvents.ts
+  _components/
+    LiveEventsClient.tsx
+    EventsList.tsx
+    EventRow.tsx
+    MatchCenterPanels.tsx
+    EventActionBar.tsx
+    EventTopBar.tsx
+    MobileTvSheet.tsx
+    QuickTiles.tsx
 
 ---
 
