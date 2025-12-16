@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { validateCronRequest } from "@/lib/utils/auth"
+import { validateCronRequest } from "@/lib/utils/auth.server"
 import { redisService } from "@/lib/services/redis-service"
 
 export async function GET(request: Request) {

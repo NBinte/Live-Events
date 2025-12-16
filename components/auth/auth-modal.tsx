@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Image from "next/image"
-import { signInWithGoogle, signInWithFacebook, signInWithLine, signInWithEmail } from "@/lib/auth"
+import { signInWithGoogle, signInWithFacebook, signInWithLine, signInWithEmail } from "@/lib/auth.client"
 
 export function AuthModal() {
   const [isOpen, setIsOpen] = useState(false)
