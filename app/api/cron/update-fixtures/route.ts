@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { validateCronRequest } from "@/lib/utils/auth.server"
+import { validateCronRequest } from "@/lib/auth.server"
 import { redisService } from "@/lib/services/redis-service"
 import { getFixturesByDate } from "@/lib/sports-db"
 
