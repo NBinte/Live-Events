@@ -1,9 +1,10 @@
 //nuzhatbintei@gmail.com
-import { LiveEvents } from "@/components/newlive-events"; // adjust path if different
+
+import { LiveEvents } from "@/components/new-live-events";
 
 export default function LiveEventsPage() {
   return (
-    <main className="min-h-screen p-6">
+    <main>
       <LiveEvents layout="single" title="Live Events" />
     </main>
   );
